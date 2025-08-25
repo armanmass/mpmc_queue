@@ -1,7 +1,7 @@
+import std;
 #pragma once
-#include "Constants.hpp"
+#include <Constants.hpp>
 
-#include <atomic>
 
 template<typename T, typename Size, typename ConsumerCount, typename ProducerCount>
 class MPMC
