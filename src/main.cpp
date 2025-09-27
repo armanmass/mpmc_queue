@@ -1,7 +1,6 @@
 import std;
 #include <MPMC.hpp>
 
-
 int main()
 {
     // testing

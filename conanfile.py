@@ -1,7 +1,6 @@
 from conan import ConanFile
 from conan.tools.cmake import CMakeDeps, CMakeToolchain, cmake_layout
 
-
 class SetUp(ConanFile):
     settings = "os", "arch", "compiler", "build_type"
     options = { "sanitizer": ["none", "asan", "tsan", "msan", "ubsan"] }
@@ -11,9 +10,7 @@ class SetUp(ConanFile):
         import os
         project_root = os.getcwd()
 
-        module_flags = [
-            f"-fprebuilt-module-path={project_root}/modules"
-        ]
+        flags = [ f"-fprebuilt-module-path={project_root}/modules" ]
 
         # DEBUG
         if self.settings.build_type == "Debug":
@@ -37,39 +34,28 @@ class SetUp(ConanFile):
             elif self.options.sanitizer == "ubsan":
                 sanitizer_flags = ["-fsanitize=undefined"]
 
-            debug_flags = warning_flags + sanitizer_flags + module_flags
-
-            if sanitizer_flags:
-                debug_flags.extend(["-O1", "-g", "-fno-omit-frame-pointer"])
-            else:
-                debug_flags.extend(["-Og", "-g"])
+            flags += warning_flags
+            flags += sanitizer_flags
+            flags.extend(["-O0", "-g", "-fno-omit-frame-pointer"])
             
-            if self.settings.compiler in ["clang", "gcc"]:
-                self.conf.define("tools.build:cxxflags", debug_flags)
-                self.conf.define("tools.build:cflags", debug_flags)
-                if sanitizer_flags:
-                    self.conf.define("tools.build:sharedlinkflags", sanitizer_flags)
-                    self.conf.define("tools.build:exelinkflags", sanitizer_flags)
+            self.conf.define("tools.build:sharedlinkflags", sanitizer_flags)
+            self.conf.define("tools.build:exelinkflags", sanitizer_flags)
 
         # RELEASE
         elif self.settings.build_type == "Release":
             print("Configuring RELEASE build.")
-            if self.settings.compiler in ["clang", "gcc"]:
-                release_flags = ["-O3", "-DNDEBUG", "-march=native"]
-                release_flags += module_flags
-                self.conf.define("tools.build:cxxflags", release_flags)
-                self.conf.define("tools.build:cflags", release_flags)
+            flags += ["-O3", "-DNDEBUG", "-march=native", "mtune=native", "-flto"]
+
+        self.conf.define("tools.build:cxxflags", flags)
+        self.conf.define("tools.build:cflags", flags)
     
     def generate(self):
+        cmake = CMakeToolchain(self)
+        cmake.generator = "Ninja"
+        cmake.generate()
+
         deps = CMakeDeps(self)
         deps.generate()
-        
-        tc = CMakeToolchain(self)
-        tc.generator = "Ninja"
-        if self.settings.compiler.cppstd:
-            tc.variables["CMAKE_CXX_STANDARD"] = str(self.settings.compiler.cppstd)
-            tc.variables["CMAKE_CXX_STANDARD_REQUIRED"] = "ON"
-        tc.generate()
 
     def layout(self):
         cmake_layout(self)
