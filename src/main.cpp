@@ -3,8 +3,7 @@ import std;
 
 int main()
 {
-    // testing
-    MPMC<int, int, int, int> q;        
+    MPMC<int, 1024> q;        
     std::cout << "USING IMPORT STD" << std::endl;
     return 0;
 }
